@@ -1,4 +1,4 @@
-module CoherentStructures
+module DMAP
 
 using Distances:Euclidean
 
@@ -6,10 +6,31 @@ using Distances:Euclidean
 using Plots
 
 # export:
-export dynamic_laplacian, calculate_trajectories, SEBA, animate_scatter, plot_vector_field, uinterp_2D, uinterp, Trajectory, velocity_field, calculate_eps, iso_kernel
+export dynamic_laplacian, calculate_trajectories, SEBA, animate_scatter, plot_vector_field, Trajectory, velocity_field, iso_kernel
 
+# assisting with each stage of the workflow
+include("loader.jl")
 include("seba.jl")
 include("nndist.jl")
+include("interpolate.jl")
+
+# DATA STRUCTURES
+
+struct DiscreteVelocityField
+    X::Array{Float64} # node coordinates
+    dX::Array{Float64} # node velocities
+    t::Vector{Float64} # time steps
+
+    # perform checks
+    # http://web.mit.edu/julia_v0.6.2/julia/share/doc/julia/html/en/manual/constructors.html
+    function DiscreteVelocityField(X,dX,t)
+        # e.g.
+        if (size(dX,3)!=length(t))
+            error("incorrect dimensions")
+        end
+        new(X,dX,t)
+    end
+end
 
 # create trajectory structure
 # 
@@ -136,59 +157,6 @@ end
 
 function plot_vector_field(x,y,vector_field)
     display(quiver(x,y, quiver=(vector_field[:,1],vector_field[:,2])))
-end
-
-function uinterp_2D(coord_vec,zval,eps=1/sqrt(2))
-    # first edition unstructured interpolator 
-    # (!) test for vector z values
-    # xy = [x y]
-    n = size(coord_vec,1)
-    ker_matrix = [iso_kernel(coord_vec[i,:],coord_vec[j,:],eps) for i = 1:n, j = 1:n]
-    coeff_vec = ker_matrix\zval
-    function eval(U)
-        return sum(coeff_vec.*[iso_kernel(U',coord_vec[i,:],eps) for i = 1:n],dims=1)
-        # trying to return a Float64 type
-    end
-end
-
-function uinterp(coords,times,zvals,eps=1/sqrt(2))
-    # second edition unstructed interpolator
-    # zval is an array of zvalues indexed by time
-    n = size(coords,1)
-    ker_matrix = [iso_kernel(coords[i,:],coords[j,:],eps) for i = 1:n, j = 1:n]
-    coeff_vec = similar(zvals)
-    inv_ker = inv(ker_matrix)
-    for i = 1:length(times)
-        coeff_vec[:,:,i] = inv_ker*zvals[:,:,i]
-    end
-    function eval(X,t)
-        # interpolate through (simple linear interpolation)
-        if (t <= times[1])
-            coeff_vec = coeff_vec[:,:,1]
-        elseif(t >= times[length(times)])
-            coeff_vec = coeff_vec[:,:,length(times)]
-        else
-            for ti = 1:length(times)
-                if (times[ti] > t)
-                    del1 = (times[ti]-t)/((times[ti]-times[ti-1]))
-                    del2 = (t-times[ti-1])/((times[ti]-times[ti-1]))
-                    coeff_vec = del1*coeff_vec[:,:,ti-1]+del2*coeff_vec[:,:,ti]
-                    break
-                end
-            end
-        end
-
-        return sum(coeff_vec.*[iso_kernel(X',coords[i,:],eps) for i = 1:n],dims=1)[1]
-    end
-end
-
-function calculate_eps(X,factor=0.815)
-    n = size(X,1)
-    dist_matrix = [norm(X[i,:]-X[j,:]) for i = 1:n, j = 1:n]
-    d_vec = sort(dist_matrix,dims=2)[:,2]
-    display(plot(d_vec))
-    return factor*sum(d_vec)/n # Hardy's, obtained from S. Rippa paper.
-    # return factor*0.3
 end
 
 # function velocity_field(
