@@ -6,7 +6,7 @@ using CSV
 using DataFrames
 using DifferentialEquations
 
-# -------------------------------------------------------------------------------------------------------]
+# -------------------------------------------------------------------------------------------------------
 # extract discrete velocity field to X, dX multi-dimensional arrays.
 
 input_dir = "/Users/jackh/Documents/Honours/DMAp/DMAP_0/examples/simple_pipe/input/"
@@ -17,9 +17,9 @@ dvf = load_dvf(input_files,input_dir)
 # -------------------------------------------------------------------------------------------------------
 # build interpolated velocity field
 
-eps=calculate_eps(dvf.X)
+eps = calculate_eps(dvf.X)
 
-f = uinterp_0(dvf.X,dvf.dX[:,:,1],eps)
+# f = uinterp_0(dvf.X,dvf.dX[:,:,1],eps)
 
 # eps = 0.0002798035466992911
 # f = uinterp_2D(X,dX[:,:,1],0.0002798035466992911*1E-2)

@@ -106,48 +106,6 @@ function iso_kernel(
     return temp >= thresh ? temp : 0;
 end
 
-function calculate_trajectories(
-    x,
-    y,
-    t,
-    flow_field
-)
-    n_p = length(x);
-    max_del_t = (t[2]-t[1])*10^(-2); # UPDATE THIS TO MORE GENERAL
-    if (length(t) == 2)
-        time_steps = LinRange(t[1],t[2],ceil(Int,(t[2] - t[1])/max_del_t)+1);
-        n_t = length(time_steps);
-        x_int = Array{Float64}(undef, n_p, n_t);
-        x_int[:,1] = x;
-        y_int = Array{Float64}(undef, n_p, n_t);
-        y_int[:,1] = y;
-        for i_t = 1:n_t-1
-            for i_p = 1:n_p
-                
-                next_xy = [x_int[i_p,i_t];y_int[i_p,i_t]] + flow_field(x_int[i_p,i_t],y_int[i_p,i_t],time_steps[i_t])*(time_steps[i_t+1] - time_steps[i_t])
-                x_int[i_p,i_t+1] = mod(next_xy[1],20); # note mod due specificially for BJ periodic boundary conditions; need to make this more flexible!
-                y_int[i_p,i_t+1] = next_xy[2];
-            end
-        end
-        x_out = [x_int[:,1] x_int[:,end]];
-        y_out = [y_int[:,1] y_int[:,end]];
-
-        return x_out, y_out
-    elseif(length(t) > 2)
-        n_t = length(t); # NOTE: different definition than above
-        x_out = Array{Float64}(undef, n_p, n_t);
-        y_out = Array{Float64}(undef, n_p, n_t);
-        x_out[:,1] = x;
-        y_out[:,1] = y;
-        for i_t = 1:n_t-1
-            traj_out = calculate_trajectories(x_out[:,i_t], y_out[:,i_t], [t[i_t];t[i_t+1]],flow_field);
-            x_out[:,i_t+1] = traj_out[1][:,2];
-            y_out[:,i_t+1] = traj_out[2][:,2];
-        end 
-        return x_out, y_out
-    end
-end
-
 function animate_scatter(x_traj,y_traj,vec)
     n_t = size(x_traj,2)
     anim = @animate for i ∈ 1:n_t

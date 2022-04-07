@@ -3,8 +3,12 @@
 # Interpolate a discrete vector field in both space and time
 # ------------------------------------------------------------------------------------------------------------------------
 
-
-export rbf, uinterp_0, uinterp, test_uinterp_0, calculate_eps
+export 
+    rbf, 
+    uinterp_0, 
+    uinterp, 
+    test_uinterp_0, 
+    calculate_eps
 
 function rbf(
     x,
@@ -50,30 +54,51 @@ end
 
 # to-do: add variable bandwidth kernels / choice over kernel mode
 # can we use splat (...) here to fix some of the earlier issues???
+function uinterp_0(coord_vec,zval,mode::String="uniform")
+    if (cmp(mode,"uniform")==0) 
+        # uniform bandwidth across all kernels
+        eps = calculate_eps(coord_vec)
+    elseif (cmp(mode,"vbf")==0)
+        # variable bandwidth kernel
+        eps = 1 # !!!! needs to be updated
+    end
+
+    return uinterp_0(coord_vec,zval,eps)
+end
+
+function uinterp_0(coord_vec,zval,eps::Float64)   
+    eps_vec = [eps for i = 1:size(coord_vec,1)]
+    return uinterp_0(coord_vec,zval,eps_vec)
+end
+
 function uinterp_0(
     coord_vec,
     zval,
-    eps=1/sqrt(2)
+    eps::Vector{Float64}
 )
     # unstructured interpolation using radial basis functions with shape parameter = eps
     # returns interpolation function eval
 
+    # checks
+    # ...
+
     # uninterp_0 is a single time slice; can be used to debug the more general uinterp
     n = size(coord_vec,1)
-    ker_matrix = [rbf(coord_vec[i,:],coord_vec[j,:],eps) for i = 1:n, j = 1:n]
+    # eps[i] or eps[j] below?
+    ker_matrix = [rbf(coord_vec[i,:],coord_vec[j,:],eps[i]) for i = 1:n, j = 1:n]
     # coeff_vec = ker_matrix\zval
     coeff_vec = inv(ker_matrix)*zval
     function eval(U)
-        temp = sum(coeff_vec.*[rbf(U,coord_vec[i,:],eps) for i = 1:n],dims=1)
+        temp = sum(coeff_vec.*[rbf(U,coord_vec[i,:],eps[i]) for i = 1:n],dims=1)
         return length(temp) == 1 ? sum(temp) : temp
         # returns datatype: array of vectors?
     end
 end
 
-function test_uinterp_0(f_interp,X,z)
-    diff = [f_interp(X[i,:])-z[i] for i = 1:length(z)]
-    err = sum(diff.^2) # error here
-    print(err)
+function test_uinterp_0(f_interp,X::Matrix{Float64},z::Vector{Vector{Float64}})
+    diff = vcat([(f_interp(X[i,:])-z[i])' for i = 1:length(z)]...)
+    # err = sum(diff.^2) # error here
+    return err = maximum(broadcast(abs,diff))
 end
 
 function calculate_eps(X,factor=0.815)

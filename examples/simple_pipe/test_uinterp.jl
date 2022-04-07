@@ -16,44 +16,26 @@ dvf = load_dvf(input_files,input_dir)
 
 # -------------------------------------------------------------------------------------------------------
 # build interpolated velocity field
+# eps = calculate_eps(dvf.X)
 
-eps=calculate_eps(dvf.X)
-
+# f = uinterp_0(dvf.X,dvf.dX[:,1,1],eps)
 
 # eps = 0.0002798035466992911
 # f = uinterp_2D(X,dX[:,:,1],0.0002798035466992911*1E-2)
 # f = uinterp(X,t,dX,eps)
 
-# coords = X
+coord_vec = dvf.X
+eps = 0.01
 # times = t
-# zvals = dX
+zval = dvf.dX[:,:,1]
 
-# n = size(coords,1)
-# ker_matrix = [iso_kernel(coords[i,:],coords[j,:],eps) for i = 1:n, j = 1:n]
-# coeff_vec = similar(zvals)
-# inv_ker = inv(ker_matrix)
-# for i = 1:length(times)
-#     coeff_vec[:,:,i] = inv_ker*zvals[:,:,i]
-# end
-# function eval(X,t)
-#     # interpolate through (simple linear interpolation)
-#     if (t <= times[1])
-#         coeff_vec = coeff_vec[:,:,1]
-#     elseif(t >= times[length(times)])
-#         coeff_vec = coeff_vec[:,:,length(times)]
-#     else
-#         for ti = 1:length(times)
-#             if (times[ti] > t)
-#                 del1 = (times[ti]-t)/((times[ti]-times[ti-1]))
-#                 del2 = (t-times[ti-1])/((times[ti]-times[ti-1]))
-#                 coeff_vec = del1*coeff_vec[:,:,ti-1]+del2*coeff_vec[:,:,ti]
-#                 break
-#             end
-#         end
-#     end
-
-#     return sum(coeff_vec.*[iso_kernel(X',coord_vec[i,:],eps) for i = 1:n],dims=1)[1]
-# end
+n = size(coord_vec,1)
+ker_matrix = [rbf(coord_vec[i,:],coord_vec[j,:],eps) for i = 1:n, j = 1:n]
+# coeff_vec = ker_matrix\zval
+coeff_vec = inv(ker_matrix)*zval
+U = dvf.X[1,:]
+temp = sum(coeff_vec.*[rbf(U,coord_vec[i,:],eps) for i = 1:n],dims=1)
+length(temp) == 1 ? sum(temp) : temp
 
 
 # -------------------------------------------------------------------------------------------------------

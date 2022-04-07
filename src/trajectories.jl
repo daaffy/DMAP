@@ -20,6 +20,7 @@ function indicator()
 
 end
 
+#  AbstractRange might be a more natural input
 function create_grid(args...)
     # create a uniform grid in the appropriate representation to be fed into the trajectory solver
     
