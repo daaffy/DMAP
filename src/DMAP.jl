@@ -6,16 +6,16 @@ using Distances:Euclidean
 using Plots
 
 # export:
-export dynamic_laplacian, calculate_trajectories, SEBA, animate_scatter, plot_vector_field, Trajectory, velocity_field, iso_kernel
+export dynamic_laplacian, calculate_trajectories, SEBA, animate_scatter, plot_vector_field, velocity_field, iso_kernel
 
 # assisting with each stage of the workflow
 include("loader.jl")
+include("trajectories.jl")
 include("seba.jl")
 include("nndist.jl")
 include("interpolate.jl")
 
 # DATA STRUCTURES
-
 struct DiscreteVelocityField
     X::Array{Float64} # node coordinates
     dX::Array{Float64} # node velocities
@@ -45,12 +45,13 @@ end
 # ;; make sparse (zero threshold)
 function dynamic_laplacian(
     # to-do: trajectory struct (can extract spatial dimensions from this)
-    X_traj::Array{Float64},
-    t,
+    traj::Trajectory,
     metric = Euclidean(),
-    epsilon = nndist(X_traj[:,1,:])/sqrt(2) # according to heuristic; see summary
+    epsilon = nndist(traj.X[:,1,:])/sqrt(2) # according to heuristic; see summary
     # epsilon = 0.25/sqrt(2)
 )   
+    X_traj = traj.X
+    t = traj.t
     n_s = size(X_traj, 1)
     n_t = size(X_traj, 2)
     alpha = 1

@@ -49,6 +49,7 @@ end
 
 
 # to-do: add variable bandwidth kernels / choice over kernel mode
+# can we use splat (...) here to fix some of the earlier issues???
 function uinterp_0(
     coord_vec,
     zval,
@@ -58,20 +59,20 @@ function uinterp_0(
     # returns interpolation function eval
 
     # uninterp_0 is a single time slice; can be used to debug the more general uinterp
-
     n = size(coord_vec,1)
     ker_matrix = [rbf(coord_vec[i,:],coord_vec[j,:],eps) for i = 1:n, j = 1:n]
-    coeff_vec = ker_matrix\zval
+    # coeff_vec = ker_matrix\zval
+    coeff_vec = inv(ker_matrix)*zval
     function eval(U)
-        temp = sum(coeff_vec.*[rbf(U',coord_vec[i,:],eps) for i = 1:n],dims=1)
+        temp = sum(coeff_vec.*[rbf(U,coord_vec[i,:],eps) for i = 1:n],dims=1)
         return length(temp) == 1 ? sum(temp) : temp
         # returns datatype: array of vectors?
     end
 end
 
 function test_uinterp_0(f_interp,X,z)
-    diff = [f_interp(X[i,:])[1]-z[i] for i = 1:length(z)]
-    err = sum(diff.^2)
+    diff = [f_interp(X[i,:])-z[i] for i = 1:length(z)]
+    err = sum(diff.^2) # error here
     print(err)
 end
 
