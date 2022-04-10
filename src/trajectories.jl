@@ -1,6 +1,6 @@
 using DifferentialEquations
 
-export create_grid, solve_trajectory, test
+export create_grid, solve_trajectory, test, clip
 
 struct Trajectory
     X::Array{Float64,3}
@@ -16,9 +16,9 @@ end
 # - cut-off points that leave the geometry
 # ** use an indicator function of some kind to solve the above problems?
 
-function indicator()
+# function indicator()
 
-end
+# end
 
 #  AbstractRange might be a more natural input
 function create_grid(args...)
@@ -28,16 +28,21 @@ function create_grid(args...)
     # ...
     
     d = length(args)-1 # spatial dimensions
-    lims = [args[d_i][1]:args[d+1][d_i]:args[d_i][2] for d_i = 1:d]
+    # lims = [args[d_i][1]:args[d+1][d_i]:args[d_i][2] for d_i = 1:d]
+    lims = [LinRange(args[d_i][1],args[d_i][2],args[d+1][d_i]) for d_i = 1:d]
     temp = [collect(i)' for i in Iterators.product(lims...)] # the transpose (') is the only way I could figure out to convert to an appropriate type
     return vcat(temp...)
 end
 
+# to-do??
+# - vec_field::DiscreteVectorField solver for large datasets (pre-interpolating the whole discrete vector field is too expensive)
+
 function solve_trajectory(
-    vec_field, # make this an abstract type
-    X_0::Matrix{Float64},
-    t::Vector{Float64}
-)
+    vec_field::Function, # make this an abstract type
+    X_0::Matrix{<:Real},
+    t::Vector{<:Real}
+)   
+    vec_field_temp(x,p,t) = vec(vec_field(x,t)) # form for ODE package # note vec() to turn from row vector to column vector (required form)
     # return Trajectory (cut-off values outside indicator function, if provided)
     n_t = length(t)
     n_s = size(X_0,1)
@@ -45,8 +50,8 @@ function solve_trajectory(
 
     X = Array{Float64}(undef,n_s,n_t,d) # not sure if I like the representation order; (n_s,d,n_t) more consistent?
     for i = 1:n_s
-        local u0 = [X_0[i,1];X_0[i,2]]
-        local prob = ODEProblem(vec_field,u0,(t[1],t[end]))
+        local u0 = vec(X_0[i,:])
+        local prob = ODEProblem(vec_field_temp,u0,(t[1],t[end]))
         local sol = solve(prob,saveat=t)
         for j = 1:n_t
             X[i,j,:] = sol.u[j]
@@ -62,4 +67,17 @@ function solve_trajectory(
     t::AbstractRange
 )   
     return solve_trajectory(vec_field,X,collect(t))
+end
+
+function clip(traj::Trajectory,indicator::Function)
+    temp = traj.X
+    for i = size(traj.X,1):-1:1
+        for j = length(traj.t):-1:1
+            if (!indicator(temp[i,j,:]))
+                temp = temp[Not(i),:,:]
+                break
+            end
+        end
+    end
+    return Trajectory(temp,traj.t)
 end

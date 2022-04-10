@@ -7,17 +7,10 @@ using Plots
 
 # export:
 export dynamic_laplacian, calculate_trajectories, SEBA, animate_scatter, plot_vector_field, velocity_field, iso_kernel
+export DiscreteVelocityField
 
-# assisting with each stage of the workflow
-include("loader.jl")
-include("trajectories.jl")
-include("seba.jl")
-include("nndist.jl")
-include("interpolate.jl")
-
-# DATA STRUCTURES
 struct DiscreteVelocityField
-    X::Array{Float64} # node coordinates
+    X::Array{Float64,2} # node coordinates
     dX::Array{Float64} # node velocities
     t::Vector{Float64} # time steps
 
@@ -31,6 +24,13 @@ struct DiscreteVelocityField
         new(X,dX,t)
     end
 end
+
+# assisting with each stage of the workflow
+include("./loader.jl")
+include("./trajectories.jl")
+include("./seba.jl")
+include("./nndist.jl")
+include("./interpolate.jl")
 
 # create trajectory structure
 # 
