@@ -2,5 +2,5 @@
 *.jl.cov
 *.jl.mem
 *.DS_Store
-out*.csv
+*.csv
 /Manifest.toml
