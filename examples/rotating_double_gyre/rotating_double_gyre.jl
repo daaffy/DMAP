@@ -26,7 +26,7 @@ function flow_field_double_gyre(x,y,t)
     return [pi*sin(2*pi*x)*cos(pi*y) 2*pi*sin(pi*x)*cos(2*pi*y); -2*pi*cos(2*pi*x)*sin(pi*y) -pi*cos(pi*x)*sin(2*pi*y)]*[1-temp; temp];
 end
 
-function vec_field(u,p,t)
+function vec_field(u,t)
     return flow_field_double_gyre(u[1],u[2],t)
 end
 
@@ -34,7 +34,7 @@ end
 # integrate to determine trajectories 
 # note: combining integration with dynamic Laplacian construction will save time if velocity vector field is given as input
 
-X_0 = create_grid([0 1],[0 1],[.025 .025])
+X_0 = create_grid([0 1],[0 1],[40 40])
 t = (0:0.5:1)
 traj = solve_trajectory(vec_field,X_0,t)
 

@@ -70,15 +70,14 @@ function solve_trajectory(
 end
 
 function clip(traj::Trajectory,indicator::Function)
-    inds = Vector{Int32}(undef,0)
+    inds = Vector{Int32}(undef,0) # store trajectory indices that leave the indicated domain
     for i = 1:size(traj.X,1)
         for j = 1:length(traj.t)
-            if (!indicator(traj.X[i,j,:]))
-                # temp = temp[Not(i),:,:] # we need to build temp rather than cut things out of it; use push! ?
-                push!(inds,i)
+            if (!indicator(traj.X[i,j,:])) # "if trajectory leaves the indicated domain"
+                push!(inds,i) # add index to inds
                 break
             end
         end
     end
-    return Trajectory(traj.X[Not(inds),:,:],traj.t)
+    return Trajectory(traj.X[Not(inds),:,:],traj.t) # ignore the trajectory indices that leave the indicated domain
 end
