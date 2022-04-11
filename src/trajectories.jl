@@ -70,14 +70,15 @@ function solve_trajectory(
 end
 
 function clip(traj::Trajectory,indicator::Function)
-    temp = traj.X
-    for i = size(traj.X,1):-1:1
-        for j = length(traj.t):-1:1
-            if (!indicator(temp[i,j,:]))
-                temp = temp[Not(i),:,:] # we need to build temp rather than cut things out of it; use push! ?
+    inds = Vector{Int32}(undef,0)
+    for i = 1:size(traj.X,1)
+        for j = 1:length(traj.t)
+            if (!indicator(traj.X[i,j,:]))
+                # temp = temp[Not(i),:,:] # we need to build temp rather than cut things out of it; use push! ?
+                push!(inds,i)
                 break
             end
         end
     end
-    return Trajectory(temp,traj.t)
+    return Trajectory(traj.X[Not(inds),:,:],traj.t)
 end
