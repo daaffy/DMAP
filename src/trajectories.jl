@@ -48,7 +48,7 @@ function solve_trajectory(
     n_s = size(X_0,1)
     d = size(X_0,2)
 
-    X = Array{Float64}(undef,n_s,n_t,d) # not sure if I like the representation order; (n_s,d,n_t) more consistent?
+    X = Array{Float64}(undef,n_s,n_t,d) # change this # not sure if I like the representation order; (n_s,d,n_t) more consistent?
     for i = 1:n_s
         local u0 = vec(X_0[i,:])
         local prob = ODEProblem(vec_field_temp,u0,(t[1],t[end]))
@@ -74,7 +74,7 @@ function clip(traj::Trajectory,indicator::Function)
     for i = size(traj.X,1):-1:1
         for j = length(traj.t):-1:1
             if (!indicator(temp[i,j,:]))
-                temp = temp[Not(i),:,:]
+                temp = temp[Not(i),:,:] # we need to build temp rather than cut things out of it; use push! ?
                 break
             end
         end

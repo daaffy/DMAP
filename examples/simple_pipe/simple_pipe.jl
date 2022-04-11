@@ -9,10 +9,10 @@ using DifferentialEquations
 # -------------------------------------------------------------------------------------------------------
 # extract discrete velocity field to X, dX multi-dimensional arrays.
 
-# input_dir = "/Users/jackh/Documents/Honours/DMAp/DMAP_0/examples/simple_pipe/input/"
-# input_files = readdir(input_dir)
+input_dir = "./examples/simple_pipe/input/"
+input_files = readdir(input_dir)
 
-# dvf = load_dvf(input_files,input_dir)
+dvf = load_dvf(input_files,input_dir)
 
 # -------------------------------------------------------------------------------------------------------
 # build interpolated velocity field
@@ -26,7 +26,7 @@ cvf = uinterp(dvf,"nn")
 # println(dvf.dX[i,:,j])
 # println(cvf(eval_points,dvf.t[j]))
 
-X_0 = create_grid([0 -.5], [0 -.5], [0 .5], [5 5 5])
+# X_0 = create_grid([0 -.5], [0 -.5], [0 .5], [5 5 5])
 X_0 = dvf.X
 t = LinRange(0,0.01,20)
 traj = solve_trajectory(cvf,X_0,t)
