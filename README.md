@@ -4,6 +4,7 @@
 [![Coverage](https://codecov.io/gh/daaffy/DMAP.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/daaffy/DMAP.jl) -->
 
 [Diffusion map](https://www.sciencedirect.com/science/article/pii/S1063520306000546) approach to the approximation of the [dynamic Laplacian](https://arxiv.org/abs/1411.7186). 
+<<<<<<< HEAD
 
 ## Instructions
 To use the project, clone the repository to your own machine:
