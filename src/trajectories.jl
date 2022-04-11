@@ -2,11 +2,6 @@ using DifferentialEquations
 
 export create_grid, solve_trajectory, test, clip
 
-struct Trajectory
-    X::Array{Float64,3}
-    t::Vector{Float64}
-end
-
 struct ContinuousVelocityField
     # to be fed into solve_trajectory
 end

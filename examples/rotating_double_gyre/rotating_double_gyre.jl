@@ -35,7 +35,7 @@ end
 # note: combining integration with dynamic Laplacian construction will save time if velocity vector field is given as input
 
 X_0 = create_grid([0 1],[0 1],[40 40])
-t = (0:0.5:1)
+t = (0:0.05:1)
 traj = solve_trajectory(vec_field,X_0,t)
 
 # -------------------------------------------------------------------------------------------------------
@@ -53,6 +53,8 @@ traj = solve_trajectory(vec_field,X_0,t)
 r = 2
 V = real(v[:,end:-1:end-r+1]) 
 S, R = SEBA(V)
+
+export_eig(traj,S,"./examples/rotating_double_gyre/output/") # export
 
 # -------------------------------------------------------------------------------------------------------
 # plot

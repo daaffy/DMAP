@@ -36,7 +36,7 @@ function load_dvf(input_files,input_dir)
     end
 
     # for this example we need to manually construct the time vector since the data is not supplied
-    t = LinRange(0,1,discrete_steps)
+    t = LinRange(0,0.1,discrete_steps) # this needs changing!!
 
     return DiscreteVelocityField(X,dX,t)
 end

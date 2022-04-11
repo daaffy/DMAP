@@ -89,6 +89,8 @@ function uinterp_0(points::AbstractArray{<:Real,2},samples::AbstractArray{<:Numb
     # elseif (cmp(mode,"vbk")==0)
     #     # variable bandwidth kernel
     #     eps = calculate_variable_bandwidth(coord_vec)
+    elseif(cmp(mode,"shep")==0)
+        return uinterp_0(points,samples,Shepard())
     elseif(cmp(mode,"nn")==0)
         return uinterp_0(points,samples,NearestNeighbor())
     else
@@ -169,7 +171,8 @@ end
 
 function calculate_uniform_bandwidth(X,factor=0.815)
     n = size(X,1)
-    dist_matrix = [norm(X[i,:]-X[j,:]) for i = 1:n, j = 1:n]
+    dist_matrix = pairwise(Euclidean(),X,X,dims=1)
+    # dist_matrix = [norm(X[i,:]-X[j,:]) for i = 1:n, j = 1:n]
     d_vec = sort(dist_matrix,dims=2)[:,2]
     return factor*sum(d_vec)/n # Hardy's, obtained from S. Rippa paper.
 end

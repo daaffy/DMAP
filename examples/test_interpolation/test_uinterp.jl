@@ -31,27 +31,6 @@ t = [0;1;2]
 
 dvf = DiscreteVelocityField(X_0,z_0,t)
 
-# build function here ------
-# itps = [uinterp_0(dvf.X,dvf.dX[:,:,t_i],"ubk") for t_i = 1:length(dvf.t)]
-# t = 1.2 # input to eval function
-# points = [0 0]
-# if (t <= dvf.t[1])
-#     return evaluate_itp(itps[1],points)
-# elseif((t >= dvf.t[end]))
-#     return evaluate_itp(itps[end],points)
-# else
-#     for ti = 1:length(dvf.t)
-#         if (dvf.t[ti] > t)
-#             del1 = (dvf.t[ti]-t)/((dvf.t[ti]-dvf.t[ti-1]))
-#             del2 = (t-dvf.t[ti-1])/((dvf.t[ti]-dvf.t[ti-1]))
-#             return del1*evaluate_itp(itps[ti-1],points)+del2*evaluate_itp(itps[ti],points)
-#             break
-#         end
-#     end
-# end
-# determine which 
-# --------------------------
-
 f = uinterp(dvf,"nn")
 
 t = 1.5 # input to eval function

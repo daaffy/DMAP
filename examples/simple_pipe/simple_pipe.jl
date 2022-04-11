@@ -17,14 +17,14 @@ dvf = load_dvf(input_files,input_dir)
 # -------------------------------------------------------------------------------------------------------
 # build interpolated velocity field
 
-cvf = uinterp(dvf,"nn")
+@time cvf = uinterp(dvf,"shep")
 
 # -------------------------------------------------------------------------------------------------------
 # integrate trajectories
 
 X_0 = dvf.X
 t = LinRange(0,0.01,20)
-traj = solve_trajectory(cvf,X_0,t)
+@time traj = solve_trajectory(cvf,X_0,t)
 
 indicator(x) = x[2] < 0.04 && x[2] > 0.01 ? true : false
 traj = clip(traj,indicator) # throw away trajectories that leave the domain of interest; defined by indicator()
@@ -33,11 +33,13 @@ traj = clip(traj,indicator) # throw away trajectories that leave the domain of i
 # process coherent structures
 
 @time P = dynamic_laplacian(traj)
-λ, v = eigen(P') # transpose?
+@time λ, v = eigen(P') # transpose?
 
 r = 2
 V = real(v[:,end:-1:end-r+1]) 
-S, R = SEBA(V)
+@time S, R = SEBA(V)
+
+export_eig(traj,S,"./examples/simple_pipe/output/") # export
 
 # -------------------------------------------------------------------------------------------------------
 # test plots
