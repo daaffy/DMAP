@@ -3,7 +3,7 @@ using DataFrames
 
 export load_dvf
 
-function load_dvf(input_files,input_dir)
+function load_dvf(input_files,input_dir;t=[])
     # assists in loading data from a ".csv time-series" to a DiscreteVelocityField in Julia
     # ASSUMPTION: velocity field is evaluated on a constant grid
     discrete_steps = length(input_files)
@@ -36,7 +36,13 @@ function load_dvf(input_files,input_dir)
     end
 
     # for this example we need to manually construct the time vector since the data is not supplied
-    t = LinRange(0,0.1,discrete_steps) # this needs changing!!
+    if (t==[])
+        if (discrete_steps==1)
+            t = 0:0
+        else
+            t = LinRange(0,1,discrete_steps) # this needs changing!!
+        end
+    end
 
     return DiscreteVelocityField(X,dX,t)
 end

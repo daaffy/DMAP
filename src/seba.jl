@@ -2,6 +2,8 @@
 
 using LinearAlgebra
 
+export SEBA
+
 function SEBA(V, Rinit = nothing)
 
     # Inputs: 

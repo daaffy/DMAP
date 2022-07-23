@@ -12,7 +12,8 @@ export
     test_uinterp_0, 
     calculate_uniform_bandwidth,
     evaluate_itp,
-    example
+    example, 
+    STI
 
 # how do we include from the main DMAP.jl file:
 # struct DiscreteVelocityField
@@ -45,6 +46,11 @@ function uinterp(dvf::DiscreteVelocityField,mode::String)
             end
         end
     end
+end
+
+struct STI
+    spatial_itps::Vector{ScatteredInterpolation.ScatteredInterpolant}
+
 end
 
 # function uinterp(coords,times,zvals,eps=1/sqrt(2))

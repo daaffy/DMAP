@@ -2,9 +2,10 @@ using Revise
 using DMAP
 using LinearAlgebra
 using Plots
-using CSV
-using DataFrames
-using DifferentialEquations
+using Arpack
+# using CSV
+# using DataFrames
+# using DifferentialEquations
 
 # -------------------------------------------------------------------------------------------------------
 # extract discrete velocity field to X, dX multi-dimensional arrays.
@@ -19,6 +20,14 @@ dvf = load_dvf(input_files,input_dir)
 
 @time cvf = uinterp(dvf,"shep")
 
+# A = rand(3000,3000)
+# @time eigen(A)
+
+# function f(x,t)
+#     return [0;1;0]
+# end
+# cvf = f
+
 # -------------------------------------------------------------------------------------------------------
 # integrate trajectories
 
@@ -32,20 +41,26 @@ traj = clip(traj,indicator) # throw away trajectories that leave the domain of i
 # -------------------------------------------------------------------------------------------------------
 # process coherent structures
 
-@time P = dynamic_laplacian(traj)
-@time λ, v = eigen(P') # transpose?
-
+@time P = dynamic_laplacian(traj, threshold=0.90)
 r = 2
-V = real(v[:,end:-1:end-r+1]) 
+@time λ, v = eigs(sparse(P'), nev=r+1, which=:LM) # sparse method; transpose converts sparse matrix back into a dense matrix?
+# @time λ, v = eigen(P') # transpose?
+
+
+# V = real(v[:,end:-1:end-r+1]) 
+V = real(v[:,1:r])
 @time S, R = SEBA(V)
 
-export_eig(traj,S,"./examples/simple_pipe/output/") # export
+# export_eig(traj,S,"./examples/simple_pipe/output/") # export
 
 # -------------------------------------------------------------------------------------------------------
 # test plots
 
 # display(scatter(traj.X[:,:,1]',traj.X[:,:,2]'))
+
 display(scatter(traj.X[:,1,1], traj.X[:,1,2], zcolor=real(S[:,1]), c=:jet, aspectratio=1))
+
+# display(scatter(traj.X[:,1,1], traj.X[:,1,2], zcolor=real(v[:,end-1]), c=:jet, aspectratio=1))
 # display(scatter(X_0[:,1], X_0[:,2], zcolor=real(S[:,2]), c=:jet, aspectratio=1))
 
 # -------------------------------------------------------------------------------------------------------

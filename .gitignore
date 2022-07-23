@@ -3,4 +3,8 @@
 *.jl.mem
 *.DS_Store
 out*.csv
+*.pvsm
+*.rtf
+*/out
+*/post
 /Manifest.toml
