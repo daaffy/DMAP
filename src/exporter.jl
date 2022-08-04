@@ -10,8 +10,8 @@ function exportf(traj::Trajectory,vecs::AbstractArray{},directory_name::String)
             df = DataFrame(
                 xcoord=traj.X[:,ti,1],
                 ycoord=traj.X[:,ti,2],
-                eig1=vecs[:,1],
-                eig2=vecs[:,2]
+                # eig1=vecs[:,1],
+                # eig2=vecs[:,2]
                 )
         elseif (size(traj.X,3)==3)
             df = DataFrame(

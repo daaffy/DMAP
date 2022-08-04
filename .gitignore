@@ -8,3 +8,7 @@ out*.csv
 */out
 */post
 /Manifest.toml
+*.csv
+*.png
+*.pvsm
+

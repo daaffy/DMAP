@@ -43,77 +43,41 @@ For 0 <= t <= 1.
 # =tt->(tt.^2).*(3-2*tt)
 
 s = t -> (t^2)*(3-2*t)
-function vec_field!(du,u,p,t)
+function vec_field!(du,u,s,t)
     x,y = u
-    mul!(du,[pi*sin(2*pi*x)*cos(pi*y) 2*pi*sin(pi*x)*cos(2*pi*y); -2*pi*cos(2*pi*x)*sin(pi*y) -pi*cos(pi*x)*sin(2*pi*y)],[1-p(t); p(t)])
+    mul!(du,[pi*sin(2*pi*x)*cos(pi*y) 2*pi*sin(pi*x)*cos(2*pi*y);
+             -2*pi*cos(2*pi*x)*sin(pi*y) -pi*cos(pi*x)*sin(2*pi*y)],
+            [1-s(t); s(t)])
 end
 
 # -------------------------------------------------------------------------------------------------------
 # integrate to determine trajectories 
 # note: combining integration with dynamic Laplacian construction will save time if velocity vector field is given as input
 
-res = 80
+res = 200
 X_0 = create_grid([0 1],[0 1],[res res])
 t = (0:0.1:1)
 
 @time traj = solve_ensemble(vec_field!,X_0,t,s)
 
-###### TEST HERE ###########
 
-# vec_field_temp(x,p,t) = vec(vec_field(x,t)) # form for ODE package # note vec() to turn from row vector to column vector (required form)
+boundary_idxs, boundary_mask, perc = get_edge(X_0,0.5,10) # lambda = 0.5, k = 0.5
 
+inds = randperm(size(traj.X,1))[1:5000]
+display(scatter(X_0[inds,1],X_0[inds,2],zcolor=boundary_mask[inds]*1.0,aspect_ratio=1))
+display(scatter(traj.X[inds,end,1],traj.X[inds,end,2],zcolor=traj.X[inds,1,1],aspect_ratio=1))
 
-# function _solve(vec_field!,X_0,t)
-
-    # n_t = length(t)
-    # n_s = size(X_0,1)
-    # d = size(X_0,2)
-
-    # X = Array{Float64}(undef,n_s,n_t,d) # change this # not sure if I like the representation order; (n_s,d,n_t) more consistent?
-    # for i = 1:n_s
-    #     local u0 = vec(X_0[i,:])
-    #     local prob = ODEProblem(vec_field!,u0,(t[1],t[end]),s)
-    #     local sol = solve(prob,reltol=1e-6,saveat=t)
-    #     for j = 1:n_t
-    #         X[i,j,:] = sol.u[j]
-    #     end
-    # end
-
-    # function _solve(vec_field!,X_0,t)    
-    #     prob = ODEProblem(vec_field!,[0;0],(t[1],t[end]),s)
-    #     initial_conditions = X_0'
-    #     function prob_func(prob,i,repeat)
-    #         remake(prob,u0=initial_conditions[:,i])
-    #     end
-    #     ensemble_prob = EnsembleProblem(prob; prob_func)
-    #     sim = solve(ensemble_prob,Tsit5(),EnsembleSerial(),trajectories=size(initial_conditions,2),saveat=t)
-
-    #     # construct X
-    #     n_t = length(t)
-    #     n_s = size(X_0,1)
-    #     d = size(X_0,2)
-    #     X = Array{Float64}(undef,n_s,n_t,d)
-    #     for ti = 1:length(t)
-    #         X[:,ti,:] = hcat(componentwise_vectors_timestep(sim,ti)...)
-    #     end
-
-    #     return Trajectory(X,t)
-    # end
+# survey_edge_params(X_0,(0:0.1:2),(2:1:20))
 
 
+# eps calculation
+# nn_avg,nn_list = sp_nndist(traj.X[:,1,:],mode=:plot)
+nn_avg_2,nn_list_2 = sp_nndist(traj.X[:,end,:],mode=:plot)
+plot(xlabel="(2d+1)th Nearest Neighbour",ylabel="Number of points in each value group")
+# histogram!(nn_list,bins=10,xlims=(0.0,1.0),color=:blue,label="t=1.00")
+histogram!(nn_list_2,bins=2000,xlims=(0.0,0.02),color=:black,label=:none)
 
-# X = [hcat(componentwise_vectors_timestep(sim,i)...) for i = 1:length(t)]
-    # return Trajectory(X,t)
-    # traj = Trajectory(X,t)
-# end
-
-# @time traj = _solve(vec_field!,X_0,t)
-
-# @benchmark traj = _solve(vec_field!,reshape(X_0[100,:],:,2),t)
-# print(traj.X)
-
-# @benchmark traj = solve_trajectory(vec_field,reshape(X_0[100,:],:,2),t)
-# @time traj = solve_trajectory(vec_field,X_0,t)
+epsilon = 0.008/sqrt(2)
 
 # -------------------------------------------------------------------------------------------------------
 # construct dynamic Laplacian
@@ -121,9 +85,9 @@ t = (0:0.1:1)
 
 # ProfileView.@profview
 
-@time P = dynamic_laplacian(traj, threshold=0.)
+# @time P = dynamic_laplacian(traj, threshold=0.)
 # Revise.retry(); 
-# @time P = sp_dynamic_laplacian(traj,k=8)
+@time P = sp_dynamic_laplacian(traj,k=5,epsilon=epsilon,boundary_idxs=boundary_idxs)
 
 # @time A, D = npg_k(traj, k=4)
 
@@ -135,12 +99,14 @@ t = (0:0.1:1)
 
 # -------------------------------------------------------------------------------------------------------
 # calculate eigens 
-r = 10
+r = 30
 
 # create sparse, https://discourse.julialang.org/t/fast-calculation-of-eigenvalues/30359/5
 # @time λ, v = eigen(P') # transpose?
 
 @time λ, v = eigs(sparse(P'), nev=r+1, which=:LM) # sparse method; transpose converts sparse matrix back into a dense matrix?
+display(scatter(real(λ),color=:black,xlabel="k",ylabel="Eigenvalue Value",legend=:none))
+
 # λ, v = eigs(sparse(P'), nev=r+1, which=:LM) # NEED TO GET RID OF TRANSPOSE
 
 # for npg...
@@ -159,8 +125,8 @@ S, R = SEBA(V[:,1:2])
 
 # -------------------------------------------------------------------------------------------------------
 # # plot
-display(scatter(traj.X[:,10,1], traj.X[:,10,2], zcolor=real(S[:,1]), c=:jet, aspectratio=1))
-display(scatter(traj.X[:,10,1], traj.X[:,10,2], zcolor=real(S[:,2]), c=:jet, aspectratio=1))
+display(scatter(traj.X[:,10,1], traj.X[:,10,2], zcolor=real(S[:,1]), c=:magma, aspectratio=1))
+display(scatter(traj.X[:,10,1], traj.X[:,10,2], zcolor=real(S[:,2]), c=:magma, aspectratio=1))
 
 # diffusion map embedding
 # display(scatter( real(V[:,2]), real(V[:,3]), real(V[:,4]), zcolor=real(S[:,1]), camera = (45,45) ))
@@ -168,6 +134,47 @@ display(scatter(traj.X[:,10,1], traj.X[:,10,2], zcolor=real(S[:,2]), c=:jet, asp
 # exportf(traj.X[:,1,:],[V S],"/Users/jackh/out.csv")
 # display(heatmap(reshape(real(S[:,1]),res,res)',c=:grays))
 # display(heatmap(reshape(real(S[:,2]),res,res)',c=:grays))
+
+
+display(scatter(traj.X[:,end,1], traj.X[:,end,2], aspectratio=1,label=:none,c=:black,xlims=(-0.1,1.1)))
+
+
+
+
+inds = (1:size(traj.X,1))
+# forwards
+t1 = 5; t2 = 9
+ftle_field_f,avg_f = ftle(traj,[t1;t2],0.02)
+ftle_field_f .= (ftle_field_f.>=0).*ftle_field_f
+display(scatter(traj.X[inds,t1,1], traj.X[inds,t1,2], zcolor=ftle_field_f[inds], c=:magma, aspectratio=1))
+
+# backwards
+t1 = 5; t2 = 1
+ftle_field_b,avg_b = ftle(traj,[t1;t2],0.02)
+ftle_field_b .= (ftle_field_b.>=0).*ftle_field_b
+display(scatter(traj.X[inds,t1,1], traj.X[inds,t1,2], zcolor=ftle_field_b[inds], c=:magma, aspectratio=1))
+
+features = 2
+r = 2
+mask = [(i <= features ? 1 : 0) for i = 1:r]
+partition = [ sum(((1:r).*mask).*(S[i,:].>0.5))
+    for i = 1:size(traj.X,1)]
+display(scatter(traj.X[inds,end,1], traj.X[inds,end,2], zcolor=partition[inds], aspectratio=1))
+
+# OKUBO WEISS
+s_1 = (x,y)->4*pi^2*cos(2*pi*x)*cos(pi*y)
+s_2 = (x,y)->3*pi^2*sin(2*pi*x)*sin(pi*y)*(1-s(t_val))-3*pi^2*sin(2*pi*y)*sin(pi*x)*s(t_val)
+om = (x,y)->5*pi^2*sin(2*pi*x)*sin(pi*y)*(1-s(t_val))-5*pi^2*sin(2*pi*y)*sin(pi*x)*s(t_val)
+f = (x,y)-> s_1(x,y)^2 + s_2(x,y)^2 - om(x,y)^2
+# set_1 = x -> (f(x[1],x[2]) < 0) & (x[1] <= 0.5)
+# set_2 = x -> (f(x[1],x[2]) < 0) & (x[1] > 0.5)
+set = x -> (f(x[1],x[2]) < 0)
+Q_0 = [set(traj.X[i,1,:]) for i = 1:size(traj.X,1)]
+display(scatter(traj.X[:,1,1], traj.X[:,1,2], zcolor=Q_0, aspectratio=1))
+
+
+exportf(traj,[boundary_mask Q_0 S ftle_field_f ftle_field_b partition real(v[:,1:4])],"./examples/rotating_double_gyre/output_final/")
+
 
 # # -------------------------------------------------------------------------------------------------------
 # # transport illustration

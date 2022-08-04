@@ -16,9 +16,9 @@ using NearestNeighbors
     # Rotating double gyre flow field.
 For 0 <= t <= 1.
 """
-seconds = 5
-fps = 5
-t_query = LinRange(0.01,4,seconds*fps)
+seconds = 3
+fps = 1
+t_query = LinRange(0.00001,1,seconds*fps)
 
 s = t -> (t^2)*(3-2*t)
 # g = t -> s(t_query-t)
@@ -35,12 +35,34 @@ res = 400
 X_0 = create_grid([0 1],[0 1],[res res])
 n_s = size(X_0,1)
 
-function def_circle(centre,radius,id)
-    return x -> ( ((x[1]-centre[1])^2 + (x[2]-centre[2])^2 <= radius^2) ? id : 0 )
-end
-set_1 = def_circle([0.25,0.25],0.2,1)
-set_2 = def_circle([0.45,0.8],0.15,2)
-set_3 = def_circle([0.75,0.5],0.1,4)
+
+# ----- OKUBO-WEISS
+t_i = 1
+t_val = 0
+s_1 = (x,y)->4*pi^2*cos(2*pi*x)*cos(pi*y)
+s_2 = (x,y)->3*pi^2*sin(2*pi*x)*sin(pi*y)*(1-s(t_val))-3*pi^2*sin(2*pi*y)*sin(pi*x)*s(t_val)
+om = (x,y)->5*pi^2*sin(2*pi*x)*sin(pi*y)*(1-s(t_val))-5*pi^2*sin(2*pi*y)*sin(pi*x)*s(t_val)
+f = (x,y)-> s_1(x,y)^2 + s_2(x,y)^2 - om(x,y)^2
+# set_1 = x -> (f(x[1],x[2]) < 0) & (x[1] <= 0.5)
+# set_2 = x -> (f(x[1],x[2]) < 0) & (x[1] > 0.5)
+set = x -> (f(x[1],x[2]) < 0)
+#
+#
+
+# n = size(traj.X,1)
+# val = [f(traj.X[i,t_i,1],traj.X[i,t_i,2]) for i = 1:n]
+# ow_crit = [(val[i] < 0 ? 1 : 0) for i = 1:n]
+# t_i = 10 # display at time
+# display(scatter(traj.X[:,t_i,1],traj.X[:,t_i,2],zcolor=ow_crit,c=:reds,aspectratio=1))
+
+
+# --- FOR CIRCLE ADVECTION
+# function def_circle(centre,radius,id)
+#     return x -> ( ((x[1]-centre[1])^2 + (x[2]-centre[2])^2 <= radius^2) ? id : 0 )
+# end
+# set_1 = def_circle([0.25,0.25],0.2,1)
+# set_2 = def_circle([0.45,0.8],0.15,2)
+# set_3 = def_circle([0.75,0.5],0.1,4)
 
 # set_1 = x -> (x[1] >= 0.5 ? 1 : 0) # half/half
 
@@ -48,15 +70,20 @@ anim = @animate for i ∈ 1:length(t_query)
     g = t -> s(t_query[i]-t)
     t = [0,t_query[i]]
     @time traj = solve_ensemble(vec_field!,X_0,t,g)
-    vals = [set_1(traj.X[i,2,:]) + 
-            set_2(traj.X[i,2,:]) + 
-            set_3(traj.X[i,2,:]) 
-            for i = 1:n_s]
-
-    # vals = [set_1(traj.X[i,2,:])
+    # vals = [set_1(traj.X[i,2,:]) + 
+    #         set_2(traj.X[i,2,:]) + 
+    #         set_3(traj.X[i,2,:]) 
     #         for i = 1:n_s]
 
-    display(heatmap(reshape(vals,res,res)',c=:bone,aspectratio=1,axis=nothing,foreground_color_subplot=colorant"white",legend=false))
+    vals = [set(traj.X[j,2,:])
+            for j = 1:n_s]
+
+    # vals = [set_1(traj.X[j,2,:])+2*set_2(traj.X[j,2,:])
+    #         for j = 1:n_s]
+
+    # display(heatmap(reshape(vals,res,res)',c=:bone,aspectratio=1,axis=nothing,foreground_color_subplot=colorant"white",legend=false))
+    display(heatmap(LinRange(0,1,res),LinRange(0,1,res),reshape(vals,res,res)',c=palette([:white,:black], 2),aspectratio=1,legend=false))
+    savefig("rdg_"*string(i)*".png")
     # :linear_bmy_10_95_c71_n256
 end
 gif(anim, "anim_fps15.gif", fps = fps)

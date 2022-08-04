@@ -4,6 +4,56 @@ using SparseArrays, ProgressMeter, NearestNeighbors, PyCall
 
 export dynamic_laplacian, single_dl, _kernel, sp_dynamic_laplacian
 export npg_k, npg_ϵ
+export ftle
+
+
+"""
+    --- FTLE ---
+Tools for calculating the unstructured FTLE field.
+"""
+
+function get_δball(balltree::BallTree,point;δ)
+    idxs = inrange(balltree,point,δ)
+    return idxs, balltree.data[idxs,:]
+end
+
+function calculate_jacobian(points,advected_points,centre,advected_centre)
+    perts = points .- centre'
+    advected_perts = advected_points .- advected_centre'
+    n = size(points,1)
+    A = [perts zeros(n,2); zeros(n,2) perts]
+    b = [advected_perts[:,1];advected_perts[:,2]]
+    Jcs = pinv(A)*b
+    return [Jcs[1] Jcs[2]; Jcs[3] Jcs[4]], perts, advected_perts
+end
+
+function ftle(
+    traj::Trajectory, 
+    t_inds::Vector{Int64},
+    δ::Float64
+)
+    @assert length(t_inds) == 2
+
+    points = traj.X[:,t_inds[1],:]
+    advected_points = traj.X[:,t_inds[2],:]
+    balltree = BallTree(points') # construct tree structure for neareast neighbours search
+    λ_vec = vec(zeros(size(points,1),1)) # initialise λ
+    avg_neighbours = 0 # average number of neighbours in δ-ball
+    for i = axes(points,1)
+        centre = points[i,:]
+        advected_centre = advected_points[i,:]
+        idxs,_ = get_δball(balltree,centre,δ=δ)
+        avg_neighbours += length(idxs)
+        δ_ball = points[idxs,:]
+        advected_δ_ball = advected_points[idxs,:]
+        J,_,_ = calculate_jacobian(δ_ball,advected_δ_ball,centre,advected_centre)
+        λs,_ = eigen(J'*J)
+        λ_vec[i] = max(λs...)
+    end
+    avg_neighbours /= size(points,1)
+
+    return 1/abs(traj.t[t_inds[2]]-traj.t[t_inds[1]])*log.(sqrt.(λ_vec)), avg_neighbours
+end
 
 """
     dynamic_laplacian
@@ -71,7 +121,7 @@ function sp_dynamic_laplacian(
     metric = Euclidean(),
     k = 20,
     # eps_mult = 1.0,
-    epsilon = nndist(traj.X[:,1,:])/sqrt(2), # according to heuristic; see summary
+    epsilon = nndist(traj.X[:,1,:],mode=:bigdata)/sqrt(2), # according to heuristic; see summary
     # threshold = 0.0,
     boundary_idxs = []
 )
@@ -122,6 +172,13 @@ function sp_dynamic_laplacian(
         # temp ./= d_barsum
         # P .+= temp./n_s
 
+    end
+
+    if (boundary_idxs != [])
+        for idx in boundary_idxs
+            P[:,idx] = zeros(n_s)
+            P[idx,:] = zeros(n_s)
+        end
     end
 
     # P ./= T
@@ -201,6 +258,7 @@ function npg_k(
 )   
     n_s = size(traj.X, 1)
     n_t = size(traj.X, 2)
+
     idxs_2 = vcat([i*ones(Int32,k) for i = 1:n_s]...)
     idxs_1 = similar(idxs_2)
     idxs = Vector{Vector{Int64}}(undef,n_s) # can we further initialize the nested vector?
@@ -213,7 +271,7 @@ function npg_k(
 
         A += sparse(idxs_1,idxs_2,1) + sparse(idxs_2,idxs_1,1)
     end
-    A += A'
+    A += A' # why
     A = 1*(A.>0)
     A -= sparse(I,n_s,n_s)
 

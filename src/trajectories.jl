@@ -100,7 +100,7 @@ function survey_edge_params(X,lambda_range=[],k_range=[])
             # _,_,perc[i,j] = get_edge(X,lambda_range[i],k_range[j])
         end
     end
-    heatmap(k_range,lambda_range,log10.(perc))
+    heatmap(k_range,lambda_range,log10.(perc),xlabel="k",ylabel="λ",colorbar_title="Percentage Boundary (log)")
 end
 
 function get_edge(
